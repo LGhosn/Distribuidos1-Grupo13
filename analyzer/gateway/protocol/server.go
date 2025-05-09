@@ -18,7 +18,7 @@ import (
 type Server struct {
 	lis      *CsvTransferListener
 	con      *config.Config
-	mailer   *SyncMailer
+	mailer   *SanitizeMailer
 	log      *logging.Logger
 	conns    sync.Map
 	end      atomic.Bool
@@ -26,7 +26,7 @@ type Server struct {
 }
 
 func NewServer(config *config.Config, log *logging.Logger) (*Server, error) {
-	mailer, err := NewSyncMailer(config, log)
+	mailer, err := NewSanitizeMailer(config, log)
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +69,12 @@ func (s *Server) acceptNewConn() *CsvTransferStream {
 }
 
 func (s *Server) clientHandler(conn *CsvTransferStream, clientId int) error {
+	mailer, err := s.mailer.NewSendingMailer()
+	if err != nil {
+		return err
+	}
+	defer mailer.DeInit()
+
 	for range 3 {
 		fileName, err := conn.Resource()
 		if err != nil {
@@ -84,11 +90,10 @@ func (s *Server) clientHandler(conn *CsvTransferStream, clientId int) error {
 
 			if msg.Kind == MSG_EOF {
 				s.log.Infof("%s was successfully received", fileName)
-				s.sendEof(fileName, clientId)
-				break
+				s.mailer.PublishEof(fileName, clientId, []byte{})
 
 			} else if msg.Kind == MSG_BATCH {
-				s.sendBatch(fileName, clientId, msg.Data)
+				mailer.PublishBatch(fileName, clientId, msg.Data)
 
 			} else if msg.Kind == MSG_ERR {
 				s.log.Criticalf("an error was received from the client, exiting...")
@@ -101,14 +106,6 @@ func (s *Server) clientHandler(conn *CsvTransferStream, clientId int) error {
 	}
 
 	return nil
-}
-
-func (s *Server) sendBatch(fileName string, clientId int, body []byte) {
-	s.mailer.PublishBatch(fileName, clientId, body)
-}
-
-func (s *Server) sendEof(fileName string, clientId int) {
-	s.mailer.PublishEof(fileName, clientId, []byte{})
 }
 
 func (s *Server) hasToTerminate() bool {

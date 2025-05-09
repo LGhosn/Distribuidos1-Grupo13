@@ -17,6 +17,7 @@ type SanitizeMailer struct {
 	senders     []*rabbit.SenderRobin
 	receivers   []*rabbit.Receiver
 	filename2Id map[string]int
+	outputQfmts []string
 	log         *logging.Logger
 }
 
@@ -69,16 +70,28 @@ func (s *SanitizeMailer) Init() error {
 	outQNames := s.con.OutputQueueNames
 	outCopies := s.con.OutputCopies
 
-	inputQs, outputQFmts, err := s.broker.Init(s.con.Id, inExchNames, inQNames, outExchName, outQNames, outCopies)
+	inputQs, outputQfmts, err := s.broker.Init(s.con.Id, inExchNames, inQNames, outExchName, outQNames, outCopies)
 	if err != nil {
 		return err
 	}
 
 	inputCopies := s.con.InputCopies
-	s.senders = s.initSenders(outputQFmts)
+	s.outputQfmts = outputQfmts
+	s.senders = s.initSenders(outputQfmts)
 	s.receivers = s.initReceivers(inputQs, inputCopies)
 
 	return nil
+}
+
+func (s *SanitizeMailer) NewSendingMailer() (*SanitizeMailer, error) {
+	mailer, err := NewSanitizeMailer(s.con, s.log)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't create sending mailer: %v", err)
+	}
+
+	mailer.outputQfmts = s.outputQfmts
+	mailer.senders = mailer.initSenders(mailer.outputQfmts)
+	return mailer, err
 }
 
 func (s *SanitizeMailer) Consume() (<-chan amqp.Delivery, error) {
