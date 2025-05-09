@@ -90,7 +90,8 @@ func (s *Server) clientHandler(conn *CsvTransferStream, clientId int) error {
 
 			if msg.Kind == MSG_EOF {
 				s.log.Infof("%s was successfully received", fileName)
-				s.mailer.PublishEof(fileName, clientId, []byte{})
+				mailer.PublishEof(fileName, clientId, []byte{})
+				break
 
 			} else if msg.Kind == MSG_BATCH {
 				mailer.PublishBatch(fileName, clientId, msg.Data)
