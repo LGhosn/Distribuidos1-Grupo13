@@ -22,22 +22,31 @@ type SanitizeMailer struct {
 }
 
 func NewSanitizeMailer(con *config.Config, log *logging.Logger) (*SanitizeMailer, error) {
-	broker, err := rabbit.NewBroker(con.Url)
+	broker, err := rabbit.NewBroker(con.OutputExchangeName, con.Url)
 	if err != nil {
 		return nil, err
 	}
 
 	return &SanitizeMailer{
-		broker:  broker,
-		senders: nil,
-		con:     con,
-		log:     log,
+		broker: broker,
+		con:    con,
+		log:    log,
 		filename2Id: map[string]int{
 			"movies":  0,
 			"credits": 1,
 			"ratings": 2,
 		},
 	}, nil
+}
+
+func (s *SanitizeMailer) NewSendingMailer() (*SanitizeMailer, error) {
+	mailer, err := NewSanitizeMailer(s.con, s.log)
+	if err != nil {
+		return nil, fmt.Errorf("coudln't create duplicate mailer: %v", err)
+	}
+	mailer.outputQfmts = s.outputQfmts
+	mailer.senders = mailer.initSenders(mailer.outputQfmts)
+	return mailer, nil
 }
 
 func (s *SanitizeMailer) initSenders(outputQFmts []string) []*rabbit.SenderRobin {
@@ -66,32 +75,20 @@ func (s *SanitizeMailer) initReceivers(inputQs []amqp.Queue, inputCopies []int) 
 func (s *SanitizeMailer) Init() error {
 	inExchNames := s.con.InputExchangeNames
 	inQNames := s.con.InputQueueNames
-	outExchName := s.con.OutputExchangeName
 	outQNames := s.con.OutputQueueNames
 	outCopies := s.con.OutputCopies
 
-	inputQs, outputQfmts, err := s.broker.Init(s.con.Id, inExchNames, inQNames, outExchName, outQNames, outCopies)
+	inputQs, outputQfmts, err := s.broker.Init(s.con.Id, inExchNames, inQNames, outQNames, outCopies)
 	if err != nil {
 		return err
 	}
 
 	inputCopies := s.con.InputCopies
-	s.outputQfmts = outputQfmts
 	s.senders = s.initSenders(outputQfmts)
 	s.receivers = s.initReceivers(inputQs, inputCopies)
+	s.outputQfmts = outputQfmts
 
 	return nil
-}
-
-func (s *SanitizeMailer) NewSendingMailer() (*SanitizeMailer, error) {
-	mailer, err := NewSanitizeMailer(s.con, s.log)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't create sending mailer: %v", err)
-	}
-
-	mailer.outputQfmts = s.outputQfmts
-	mailer.senders = mailer.initSenders(mailer.outputQfmts)
-	return mailer, err
 }
 
 func (s *SanitizeMailer) Consume() (<-chan amqp.Delivery, error) {

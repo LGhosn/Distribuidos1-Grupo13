@@ -22,7 +22,7 @@ type Mailer struct {
 }
 
 func NewMailer(con *config.Config, log *logging.Logger) (*Mailer, error) {
-	broker, err := rabbit.NewBroker(con.Url)
+	broker, err := rabbit.NewBroker(con.OutputExchangeName, con.Url)
 	if err != nil {
 		return nil, err
 	}
@@ -32,11 +32,10 @@ func NewMailer(con *config.Config, log *logging.Logger) (*Mailer, error) {
 func (m *Mailer) Init() ([]amqp.Queue, error) {
 	inExchNames := m.con.InputExchangeNames
 	inQNames := m.con.InputQueueNames
-	outExchName := m.con.OutputExchangeName
 	outQNames := m.con.OutputQueueNames
 	outCopies := m.con.OutputCopies
 
-	inputQs, outputQFmts, err := m.broker.Init(m.con.Id, inExchNames, inQNames, outExchName, outQNames, outCopies)
+	inputQs, outputQFmts, err := m.broker.Init(m.con.Id, inExchNames, inQNames, outQNames, outCopies)
 	if err != nil {
 		return nil, err
 	}

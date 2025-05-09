@@ -14,7 +14,7 @@ type Broker struct {
 	outputExchangeName string
 }
 
-func NewBroker(url string) (*Broker, error) {
+func NewBroker(outputExchangeName, url string) (*Broker, error) {
 	conConn, err := amqp.Dial(url)
 	if err != nil {
 		return nil, err
@@ -41,22 +41,21 @@ func NewBroker(url string) (*Broker, error) {
 		pubConn:            pubConn,
 		conCh:              conCh,
 		pubCh:              pubCh,
-		outputExchangeName: "",
+		outputExchangeName: outputExchangeName,
 	}, nil
 }
 
-func (b *Broker) Init(id int, inExchNames []string, inQNames []string, outExchName string, outQNames []string, outCopies []int) ([]amqp.Queue, []string, error) {
+func (b *Broker) Init(id int, inExchNames, inQNames, outQNames []string, outCopies []int) ([]amqp.Queue, []string, error) {
 	inputQs, err := b.initInput(id, inExchNames, inQNames)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	outputQFmts, err := b.initOutput(outExchName, outQNames, outCopies)
+	outputQFmts, err := b.initOutput(b.outputExchangeName, outQNames, outCopies)
 	if err != nil {
 		return inputQs, nil, err
 	}
 
-	b.outputExchangeName = outExchName
 	return inputQs, outputQFmts, nil
 }
 
