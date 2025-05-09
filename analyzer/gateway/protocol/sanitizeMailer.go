@@ -42,7 +42,7 @@ func NewSanitizeMailer(con *config.Config, log *logging.Logger) (*SanitizeMailer
 func (s *SanitizeMailer) NewSendingMailer() (*SanitizeMailer, error) {
 	mailer, err := NewSanitizeMailer(s.con, s.log)
 	if err != nil {
-		return nil, fmt.Errorf("coudln't create duplicate mailer: %v", err)
+		return nil, fmt.Errorf("couldn't create duplicate mailer: %v", err)
 	}
 	mailer.outputQfmts = s.outputQfmts
 	mailer.senders = mailer.initSenders(mailer.outputQfmts)
