@@ -20,8 +20,8 @@ func NewCount(w *Groupby) GroupbyHandler {
 	}
 }
 
-func (w *Count) Clean(clientId int) {
-	w.state[clientId] = make(map[string]int)
+func (w *Count) clean(clientId int) {
+	delete(w.state, clientId)
 }
 
 func (w *Count) Add(clientId int, fieldMap map[string]string, con *config.GroupbyConfig) error {

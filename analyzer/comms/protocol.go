@@ -67,6 +67,7 @@ var id2Name = []string{
 const (
 	BATCH = iota
 	EOF
+	FLUSH
 )
 
 type Batch struct {
@@ -238,4 +239,14 @@ func (m Eof) Encode() []byte {
 
 func (m Eof) ToResult(query int) []byte {
 	return []byte{0, 0, 0, 0, EOF, byte(query)}
+}
+
+type Flush struct{}
+
+func DecodeFlush([]byte) Flush {
+	return Flush{}
+}
+
+func (m Flush) Encode() []byte {
+	return []byte{}
 }

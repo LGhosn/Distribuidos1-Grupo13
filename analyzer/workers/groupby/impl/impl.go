@@ -19,7 +19,7 @@ type Groupby struct {
 type GroupbyHandler interface {
 	Add(int, map[string]string, *config.GroupbyConfig) error
 	Result(int, *config.GroupbyConfig) []map[string]string
-	Clean(int)
+	clean(int)
 }
 
 func New(con *config.GroupbyConfig, log *logging.Logger) (*Groupby, error) {
@@ -43,8 +43,8 @@ func (w *Groupby) Run() error {
 	return w.Worker.Run(w)
 }
 
-func (w *Groupby) Clean(clientId int) {
-	w.Handler.Clean(clientId)
+func (w *Groupby) clean(clientId int) {
+	w.Handler.clean(clientId)
 }
 
 func (w *Groupby) Batch(clientId, qId int, data []byte) {
@@ -77,5 +77,14 @@ func (w *Groupby) Eof(clientId, qId int, data []byte) {
 		w.Log.Errorf("failed to publish message: %v", err)
 	}
 
-	w.Clean(clientId)
+	w.clean(clientId)
+}
+
+func (w *Groupby) Flush(clientId, qId int, data []byte) {
+	w.clean(clientId)
+
+	flush := comms.DecodeFlush(data)
+	if err := w.Mailer.PublishFlush(flush, clientId); err != nil {
+		w.Log.Errorf("failed to publish message: %v", err)
+	}
 }

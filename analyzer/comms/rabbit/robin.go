@@ -41,6 +41,11 @@ func (s *SenderRobin) Eof(eof comms.Eof, headers amqp.Table) error {
 	return s.Broadcast(body, headers)
 }
 
+func (s *SenderRobin) Flush(flush comms.Flush, headers amqp.Table) error {
+	body := flush.Encode()
+	return s.Broadcast(body, headers)
+}
+
 func (s *SenderRobin) nextKeySeq(clientId int) (string, int) {
 	i := s.cur[clientId]
 	key := fmt.Sprintf(s.fmt, i)

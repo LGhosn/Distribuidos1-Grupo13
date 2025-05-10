@@ -29,7 +29,6 @@ func NewBroker(outputExchangeName, url string) (*Broker, error) {
 	if err != nil {
 		return nil, err
 	}
-	conCh.Qos(1028, 0, false)
 
 	pubCh, err := pubConn.Channel()
 	if err != nil {

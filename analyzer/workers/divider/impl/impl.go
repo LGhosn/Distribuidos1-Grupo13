@@ -93,3 +93,10 @@ func (w *Divider) Eof(clientId, qId int, data []byte) {
 		w.Log.Errorf("failed to publish message: %v", err)
 	}
 }
+
+func (w *Divider) Flush(clientId, qId int, data []byte) {
+	body := comms.DecodeFlush(data)
+	if err := w.Mailer.PublishFlush(body, clientId); err != nil {
+		w.Log.Errorf("failed to publish message: %v", err)
+	}
+}

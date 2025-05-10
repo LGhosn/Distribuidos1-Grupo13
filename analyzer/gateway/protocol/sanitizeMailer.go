@@ -143,6 +143,22 @@ func (s *SanitizeMailer) PublishEof(fileName string, clientId int, body []byte) 
 	return s.senders[s.filename2Id[fileName]].Broadcast(body, baseHeaders)
 }
 
+func (s *SanitizeMailer) PublishFlush(clientId int, body []byte) error {
+	baseHeaders := amqp.Table{
+		"kind":       comms.FLUSH,
+		"replica-id": s.con.Id,
+		"client-id":  int32(clientId),
+	}
+
+	for _, sender := range s.senders {
+		if err := sender.Broadcast(body, baseHeaders); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *SanitizeMailer) DeInit() {
 	s.broker.DeInit()
 }

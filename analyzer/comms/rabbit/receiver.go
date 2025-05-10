@@ -52,6 +52,13 @@ func (r *Receiver) Consume(consumer string) (<-chan amqp.Delivery, error) {
 			}
 
 			if expecting[replica][client] <= seq {
+				kind := int(del.Headers["kind"].(int32))
+				if kind == comms.FLUSH {
+					if expecting[replica][client] == 0 {
+						seq = 0
+					}
+				}
+
 				bufs[replica][client][seq] = del
 			} else {
 				del.Ack(false)
@@ -68,7 +75,7 @@ func (r *Receiver) Consume(consumer string) (<-chan amqp.Delivery, error) {
 				ordered <- next
 
 				kind := int(next.Headers["kind"].(int32))
-				if kind == comms.EOF {
+				if kind == comms.EOF || kind == comms.FLUSH {
 					delete(bufs[replica], client)
 					delete(expecting[replica], client)
 				}
@@ -84,10 +91,9 @@ func (r *Receiver) Consume(consumer string) (<-chan amqp.Delivery, error) {
 
 		for del := range ordered {
 			kind := int(del.Headers["kind"].(int32))
+			client := int(del.Headers["client-id"].(int32))
 
 			if kind == comms.EOF {
-				client := int(del.Headers["client-id"].(int32))
-
 				eofsRecv[client]++
 				if eofsRecv[client] < copies {
 					// TODO: habria que guardar el estado interno del receiver
@@ -97,6 +103,8 @@ func (r *Receiver) Consume(consumer string) (<-chan amqp.Delivery, error) {
 					continue
 				}
 
+				delete(eofsRecv, client)
+			} else if kind == comms.FLUSH {
 				delete(eofsRecv, client)
 			}
 

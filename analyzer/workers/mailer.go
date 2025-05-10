@@ -129,3 +129,19 @@ func (m *Mailer) PublishEof(eof comms.Eof, clientId int, headers ...amqp.Table) 
 	}
 	return nil
 }
+
+func (m *Mailer) PublishFlush(flush comms.Flush, clientId int, headers ...amqp.Table) error {
+	baseHeaders := amqp.Table{
+		"kind":       comms.FLUSH,
+		"replica-id": m.con.Id,
+		"client-id":  int32(clientId),
+	}
+	merged := mergeHeaders(baseHeaders, headers)
+
+	for _, sender := range m.senders {
+		if err := sender.Flush(flush, merged); err != nil {
+			return err
+		}
+	}
+	return nil
+}

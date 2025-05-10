@@ -67,6 +67,11 @@ func (s *SenderShard) Eof(eof comms.Eof, headers amqp.Table) error {
 	return s.Broadcast(body, headers)
 }
 
+func (s *SenderShard) Flush(flush comms.Flush, headers amqp.Table) error {
+	body := flush.Encode()
+	return s.Broadcast(body, headers)
+}
+
 func (s *SenderShard) Broadcast(body []byte, headers amqp.Table) error {
 	clientId := int(headers["client-id"].(int32))
 

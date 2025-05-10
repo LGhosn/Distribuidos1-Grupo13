@@ -105,6 +105,12 @@ func (w *Join) clean(clientId int) {
 
 	delete(w.persistors, clientId)
 
+	if ch, ok := w.outOfOrders[clientId]; ok {
+		close(ch.send)
+		<-ch.recv
+		delete(w.outOfOrders, clientId)
+	}
+
 	clientDirPath := fmt.Sprintf("%s/%d", PERSITOR_DIR_PATH, clientId)
 	os.RemoveAll(clientDirPath)
 }
@@ -347,5 +353,14 @@ func (w *Join) Eof(clientId, qId int, data []byte) {
 		}
 
 		w.clean(clientId)
+	}
+}
+
+func (w *Join) Flush(clientId, qId int, data []byte) {
+	w.clean(clientId)
+
+	flush := comms.DecodeFlush(data)
+	if err := w.Mailer.PublishFlush(flush, clientId); err != nil {
+		w.Log.Errorf("failed to publish message: %v", err)
 	}
 }

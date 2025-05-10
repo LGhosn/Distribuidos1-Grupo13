@@ -20,8 +20,8 @@ func NewSum(w *Groupby) GroupbyHandler {
 	}
 }
 
-func (w *Sum) Clean(clientId int) {
-	w.state[clientId] = make(map[string]int)
+func (w *Sum) clean(clientId int) {
+	delete(w.state, clientId)
 }
 
 func (w *Sum) Add(clientId int, fieldMap map[string]string, con *config.GroupbyConfig) error {

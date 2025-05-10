@@ -17,6 +17,7 @@ import (
 type IWorker interface {
 	Batch(int, int, []byte)
 	Eof(int, int, []byte)
+	Flush(int, int, []byte)
 }
 
 type Worker struct {
@@ -88,6 +89,9 @@ func (base *Worker) Run(w IWorker) error {
 			w.Batch(client, qId, body)
 		case comms.EOF:
 			w.Eof(client, qId, body)
+		case comms.FLUSH:
+			base.Log.Infof("received flush message for client %d", client)
+			w.Flush(client, qId, body)
 		default:
 			base.Log.Errorf("received an unknown message type %v", kind)
 		}

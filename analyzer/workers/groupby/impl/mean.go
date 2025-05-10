@@ -25,8 +25,8 @@ func NewMean(w *Groupby) GroupbyHandler {
 	}
 }
 
-func (w *Mean) Clean(clientId int) {
-	w.state[clientId] = make(map[string]tuple)
+func (w *Mean) clean(clientId int) {
+	delete(w.state, clientId)
 }
 
 func (w *Mean) Add(clientId int, fieldMap map[string]string, con *config.GroupbyConfig) error {

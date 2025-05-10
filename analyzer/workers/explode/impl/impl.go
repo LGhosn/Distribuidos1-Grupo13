@@ -79,3 +79,10 @@ func (w *Explode) Eof(clientId, qId int, data []byte) {
 	}
 
 }
+
+func (w *Explode) Flush(clientId, qId int, data []byte) {
+	flush := comms.DecodeFlush(data)
+	if err := w.Mailer.PublishFlush(flush, clientId); err != nil {
+		w.Log.Errorf("failed to publish message: %v", err)
+	}
+}

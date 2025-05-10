@@ -41,8 +41,8 @@ func (w *Top) Run() error {
 	return w.Worker.Run(w)
 }
 
-func (w *Top) Clean(clientId int) {
-	w.tops[clientId] = make([]tuple, w.Con.Amount+1)
+func (w *Top) clean(clientId int) {
+	delete(w.tops, clientId)
 }
 
 func handleTop(w *Top, clientId int, fieldMap map[string]string) error {
@@ -99,5 +99,14 @@ func (w *Top) Eof(clientId, qId int, body []byte) {
 		w.Log.Errorf("failed to publish message: %v", err)
 	}
 
-	w.Clean(clientId)
+	w.clean(clientId)
+}
+
+func (w *Top) Flush(clientId, qId int, data []byte) {
+	w.clean(clientId)
+
+	body := comms.DecodeFlush(data)
+	if err := w.Mailer.PublishFlush(body, clientId); err != nil {
+		w.Log.Errorf("failed to publish message: %v", err)
+	}
 }

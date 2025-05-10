@@ -43,9 +43,9 @@ func (w *MinMax) Run() error {
 	return w.Worker.Run(w)
 }
 
-func (w *MinMax) Clean(clientId int) {
-	w.mins[clientId] = tuple{nil, 0}
-	w.maxs[clientId] = tuple{nil, 0}
+func (w *MinMax) clean(clientId int) {
+	delete(w.mins, clientId)
+	delete(w.maxs, clientId)
 }
 
 func handleMinMax(w *MinMax, clientId int, fieldMap map[string]string) error {
@@ -112,5 +112,14 @@ func (w *MinMax) Eof(clientId, qId int, data []byte) {
 		w.Log.Errorf("failed to publish message: %v", err)
 	}
 
-	w.Clean(clientId)
+	w.clean(clientId)
+}
+
+func (w *MinMax) Flush(clientId, qId int, data []byte) {
+	w.clean(clientId)
+
+	flush := comms.DecodeFlush(data)
+	if err := w.Mailer.PublishFlush(flush, clientId); err != nil {
+		w.Log.Errorf("failed to publish message: %v", err)
+	}
 }
